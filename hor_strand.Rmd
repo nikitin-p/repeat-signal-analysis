@@ -1,0 +1,327 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+#Last version
+```{r}
+# library(tidyverse)
+library(dplyr)
+library(magrittr)
+#library(data.table)
+```
+
+First attempt: without for loop
+```{r}
+hor <- read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/hor_strandedness.tsv', header = F,  sep="\t", stringsAsFactors = F)
+hor$V6 = hor$V15
+hor = select(hor,-c(V10,V11,V12,V13,V15,V14,V16,V17,V18))
+names(hor) = c("chr", "start", "end", "hor", "hundred", "strand", "hor.start", "hor.end", "rgb")
+```
+
+```{r}
+hor.new = hor %>%
+  group_by(group = data.table::rleid(hor, strand)) %>%
+  mutate(
+    new.start = min(start),
+    new.end = max(end)
+    ) %>%
+  ungroup()
+hor.new["start"] = hor.new["new.start"]
+hor.new["end"] = hor.new["new.end"]
+hor.new = select(hor.new,-c("new.start", "new.end"))
+hor.to.bed = hor.new %>%
+  distinct_all() %>%
+  select (-c(group))
+```
+
+```{r}
+write_delim(
+  hor.to.bed,
+  "censat_hor_with_strand_R.bed",
+  delim = "\t",
+  col_names=FALSE
+)
+```
+
+New iteration (we now use -wa -wb in bedtools intersect and for loop)
+```{r}
+hor = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/hor_strandedness_wa_wb.tsv', header = F,  sep="\t", stringsAsFactors = F)
+hor = select(hor, c(V4, V10, V11, V12, V15, V18))
+names(hor) = c("hor", "chr", "start", "end", "strand", "rgb")
+```
+
+```{r}
+hor = hor %>%
+  filter(chr == "chr1")
+```
+
+```{r}
+#Test
+hor <- read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/hor_strandedness_wa_wb.tsv', header = F,  sep="\t", stringsAsFactors = F)
+hor = hor %>%
+  filter(V1 == "chr1")
+```
+
+```{r}
+hor.result = data.frame(
+  hor = character(),
+  chr = character(),
+  start = integer(),
+  end = integer(),
+  strand = character(),
+  rgb = character()
+  )
+
+hor.dummy = data.frame(
+  hor = character(),
+  chr = character(),
+  start = integer(),
+  cen.array.end = integer(),
+  hor.end = integer(),
+  strand = character(),
+  i = integer(),
+  flag = logical()
+  )
+
+prev.strand = "."
+prev.hor = "."
+
+cen.array.params = data.frame(
+  hor = character(),
+  chr = character(),
+  start = integer(),
+  end = integer(),
+  strand = character(),
+  rgb = character()
+)
+  
+for (i in 1:(nrow(hor))) {
+  cur.strand = hor[i, "strand"]
+  cur.hor = hor[i, "hor"]
+  if ((cur.strand != prev.strand) | (cur.hor != prev.hor)) {
+    hor.result = rbind(hor.result, cen.array.params)
+    flag = TRUE
+    if ((!is.na(cen.array.params[1, "end"])) & (cen.array.params[1, "end"] == hor[i, "end"])) {
+      # cen.array.params <<- data.frame(
+      #   hor = character(),
+      #   chr = character(),
+      #   start = integer(),
+      #   end = integer(),
+      #   strand = character(),
+      #   rgb = character()
+      # )
+      cen.array.params[1, "hor"] = character()
+      cen.array.params[1, "chr"] = character()
+      cen.array.params[1, "start"] = integer()
+      cen.array.params[1, "end"] = integer()
+      cen.array.params[1, "strand"] = character()
+      cen.array.params[1, "rgb"] = character()
+      next
+    }
+    # cen.array.params <<- data.frame(
+    #   hor = cur.hor,
+    #   chr = hor[i, "chr"],
+    #   start = hor[i, "start"],
+    #   end = hor[i, "end"],
+    #   strand = cur.strand,
+    #   rgb = hor[i, "rgb"]
+    # )
+    cen.array.params[1, "hor"] = cur.hor
+    cen.array.params[1, "chr"] = hor[i, "chr"]
+    cen.array.params[1, "start"] = hor[i, "start"]
+    cen.array.params[1, "end"] = hor[i, "end"]
+    cen.array.params[1, "strand"] = cur.strand
+    cen.array.params[1, "rgb"] = hor[i, "rgb"]
+  } else {
+    flag = FALSE
+    cen.array.params[1, "start"] = cen.array.params[1, "start"]
+    cen.array.params[1, "end"] = hor[i, "end"]
+  }
+  prev.strand = cur.strand
+  prev.hor = cur.hor
+  hor.dummy = rbind(hor.dummy, data.frame(
+    cen.hor = cen.array.params[i, "hor"],
+    cen.chr = cen.array.params[i, "chr"],
+    cen.start = cen.array.params[i, "start"],
+    cen.end = cen.array.params[i, "end"],
+    cen.strand = cen.array.params[i, "strand"],
+    cen.rgb = cen.array.params[i, "rgb"],
+    end = hor[i, "end"],
+    hor = cur.hor,
+    strand = cur.strand,
+    i = i,
+    flag = flag
+  ))
+}
+hor.result = rbind(hor.result, cen.array.params)
+```
+
+(06.03.2024) The 3rd iteration:
+
+```{r}
+hor = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/hor_strandedness.tsv', header = F,  sep="\t", stringsAsFactors = F)
+# /Users/pavel/Desktop/PROJECTS/hooman-2/total-cage
+hor = select(hor, c(V4, V10, V11, V12, V15, V18))
+names(hor) = c("hor", "chr", "start", "end", "strand", "rgb")
+
+# hor = hor %>%
+#   filter(chr == "chr1")
+
+hor %<>%
+  arrange(chr, start, end)
+
+prev.strand = "."
+prev.hor = "."
+
+hor.result = data.frame(
+  hor = character(),
+  chr = character(),
+  start = integer(),
+  end = integer(),
+  strand = character(),
+  rgb = character()
+  )
+
+cen.array = data.frame(
+  hor = character(),
+  chr = character(),
+  start = integer(),
+  end = integer(),
+  strand = character(),
+  rgb = character()
+)
+
+for (i in 1:(nrow(hor))) {
+  cur.strand = hor[i, "strand"]
+  cur.hor = hor[i, "hor"]
+  if ((cur.strand != prev.strand) | (cur.hor != prev.hor)) {
+    hor.result <<- rbind(hor.result, cen.array)
+    if ((!is.na(cen.array[1, "end"])) & (cen.array[1, "end"] == hor[i, "end"])) {
+      cen.array = data.frame(
+        hor = character(),
+        chr = character(),
+        start = integer(),
+        end = integer(),
+        strand = character(),
+        rgb = character()
+      )
+      next
+    }
+    cen.array = data.frame(
+      hor = cur.hor,
+      chr = hor[i, "chr"],
+      start = hor[i, "start"],
+      end = hor[i, "end"],
+      strand = cur.strand,
+      rgb = hor[i, "rgb"]
+    )
+  } else {
+    cen.array[1, "end"] = hor[i, "end"]
+  }
+  prev.strand = hor[i, "strand"]
+  prev.hor = hor[i, "hor"]
+}
+```
+
+```{r}
+hor.to.bed = hor.result %>% 
+  mutate(c1 = start) %>%
+  mutate(c2 = end) %>% 
+  mutate(c3 = 100) %>% 
+  relocate(hor, .after = end) %>%
+  relocate(c3, .after = hor) %>%
+  relocate(c1, .after = strand) %>%
+  relocate(c2, .after = c1) 
+```
+
+```{r}
+library(readr)
+write_delim(
+  hor.to.bed,
+  "/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/censat_hor_with_strand_R.bed",
+  delim = "\t",
+  col_names=FALSE
+)
+```
+
+
+```{r}
+# hor.dummy = data.frame(
+#   hor = character(),
+#   chr = character(),
+#   start = integer(),
+#   cen.array.end = integer(),
+#   hor.end = integer(),
+#   strand = character(),
+#   i = integer(),
+#   flag = logical()
+#   )
+
+  # hor.dummy = rbind(hor.dummy, data.frame(
+  #   cen.hor = cen.array.params[i, "hor"],
+  #   cen.chr = cen.array.params[i, "chr"],
+  #   cen.start = cen.array.params[i, "start"],
+  #   cen.end = cen.array.params[i, "end"],
+  #   cen.strand = cen.array.params[i, "strand"],
+  #   cen.rgb = cen.array.params[i, "rgb"],
+  #   end = hor[i, "end"],
+  #   hor = hor[i, "hor"],
+  #   strand = hor[i, "strand"],
+  #   i = i
+  #   # flag = flag
+  # ))
+
+  # cat("i:", i, "; flag:", as.character(flag), "; cen.array[1, 'start'] =", cen.array[1, "start"], "\n")
+
+  # cen.array.params <<- refresh.array(cen.array.params, i)
+
+  # return(cen.array)
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+Check if original beds were sorted
+```{r}
+censat <- read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/censat_hor_no_strand.bed', header = F,  sep="\t", stringsAsFactors = F)
+asat <- read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/ASat_strand.bed', header = F,  sep="\t", stringsAsFactors = F)
+# /Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/
+censat1 = censat %>%
+  arrange(V1, V2, V3)
+censat2 = censat %>%
+  arrange(V1)
+unique(censat1 == censat2)
+
+asat1 = asat %>%
+  arrange(V1, V2, V3)
+asat2 = asat %>%
+  arrange(V1)
+unique(asat1 == asat2)
+```
+
+#Test
+```{r}
+for (i in 1:4) {
+  if (i == 2) {
+    i = i+1
+    next
+  }
+  cat(i, "\n")
+}
+```
+
+#Test
+```{r}
+a = data.frame(a = integer())
+!is.na(a[1,"a"])
+```
+
+```{r}
+
+```

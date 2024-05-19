@@ -1,0 +1,462 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+1) *_99_83_filtered_sorted.bam.bed -- слитый сигнал с обеих цепей для образцов с парными ридами (все, кроме mammary);
+2) *_99_filtered_sorted.bam.bed -- сигнал с _отрицательной_ цепи (флаг 99 у данного рида означает, что он картировался на положительную цепь, но в силу reverse strand specificity экспериментов total RNA-seq, которые мы используем, такие риды квантифицируют гены на противоположной, отрицательно, цепи);
+3) *_83_filtered_sorted.bam.bed -- сигнал с _положительной_ цепи (симметричное объяснение);
+4) *_f16_F16_merged_sorted.bam.bed -- слитый сигнал с обеих цепей для образцов с одиночными ридами (только mammary);
+5) *_mapped_f16_f16_sorted.bam.bed -- сигнал с _положительной_ цепи (риды с флагом 16 картируются на отрицательную цепь, а значит, из-за reverse strand specificity эксперимента total RNA-seq для mammary gland, квантифицируют гены на положительной цепи); тут в названиях файлов -- два раза "f16", чтобы лучше отличать эти файлы от файлов с "_F16_" (с заглавной F, см. ниже; macOS почему-то периодически не учитывает регистр букв в названиях файлов);
+6) *_mapped_F16_sorted.bam.bed -- сигнал с _отрицательной_ цепи (риды без флага 16 картируются на положительную цепь, а значит, из-за reverse strand specificity эксперимента total RNA-seq для mammary gland, квантифицируют гены на отрицательной цепи).
+
+Нарисовать:
+1) 83_99 и f16_F16 -- это слитый сигнал;
+2) 83 и f16_f16 -- это сигнал с положительной цепи;
+3) 99 и F16 -- это сигнал с отрицательной цепи.
+
+```{r}
+library(dplyr)
+library(stringr)
+library(tibble)
+library(ggplot2)
+library(RColorBrewer)
+library(colorRamp2)
+library(circlize)
+library(ComplexHeatmap)
+stringsAsFactors = F
+```
+
+```{r}
+#Both
+airway.epithelium.iso1.both = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-airway-epithelium-iso1_S1_L001_99_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+airway.epithelium.iso1.both = select(airway.epithelium.iso1.both,-c(V5,V7,V8,V9))
+names(airway.epithelium.iso1.both) = c("chr", "start", "end", "type", "strand", "count")
+airway.epithelium.iso2.both = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-airway-epithelium-iso2_S2_L001_99_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+airway.epithelium.iso2.both = select(airway.epithelium.iso2.both,-c(V5,V7,V8,V9))
+names(airway.epithelium.iso2.both) = c("chr", "start", "end", "type", "strand", "count")
+aortic.endothelium.aniso1.both = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-aortic-endothelium-aniso1_S1_L001_99_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+aortic.endothelium.aniso1.both = select(aortic.endothelium.aniso1.both,-c(V5,V7,V8,V9))
+names(aortic.endothelium.aniso1.both) = c("chr", "start", "end", "type", "strand", "count")
+aortic.endothelium.aniso2.both = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-aortic-endothelium-aniso2_S2_L001_99_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+aortic.endothelium.aniso2.both = select(aortic.endothelium.aniso2.both,-c(V5,V7,V8,V9))
+names(aortic.endothelium.aniso2.both) = c("chr", "start", "end", "type", "strand", "count")
+mammary.epithelium.iso1.both = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-mammary-epithelium-iso1_S1_L001_f16_F16_merged_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+mammary.epithelium.iso1.both = select(mammary.epithelium.iso1.both,-c(V5,V7,V8,V9))
+names(mammary.epithelium.iso1.both) = c("chr", "start", "end", "type", "strand", "count")
+mammary.epithelium.iso2.both = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-mammary-epithelium-iso2_S2_L001_f16_F16_merged_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+mammary.epithelium.iso2.both = select(mammary.epithelium.iso2.both,-c(V5,V7,V8,V9))
+names(mammary.epithelium.iso2.both) = c("chr", "start", "end", "type", "strand", "count")
+placental.epithelium.aniso1.both = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-placental-epithelium-aniso1_S1_L001_99_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+placental.epithelium.aniso1.both = select(placental.epithelium.aniso1.both,-c(V5,V7,V8,V9))
+names(placental.epithelium.aniso1.both) = c("chr", "start", "end", "type", "strand", "count")
+placental.epithelium.aniso2.both = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-placental-epithelium-aniso2_S2_L001_99_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+placental.epithelium.aniso2.both = select(placental.epithelium.aniso2.both,-c(V5,V7,V8,V9))
+names(placental.epithelium.aniso2.both) = c("chr", "start", "end", "type", "strand", "count")
+preadipocyte.aniso1.both = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-preadipocyte-aniso1_S1_L001_99_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+preadipocyte.aniso1.both = select(preadipocyte.aniso1.both,-c(V5,V7,V8,V9))
+names(preadipocyte.aniso1.both) = c("chr", "start", "end", "type", "strand", "count")
+preadipocyte.aniso2.both = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-preadipocyte-aniso2_S2_L001_99_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+preadipocyte.aniso2.both = select(preadipocyte.aniso2.both,-c(V5,V7,V8,V9))
+names(preadipocyte.aniso2.both) = c("chr", "start", "end", "type", "strand", "count")
+skeletal.muscle.aniso1.both = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-skeletal-muscle-aniso1_S1_L001_99_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+skeletal.muscle.aniso1.both = select(skeletal.muscle.aniso1.both,-c(V5,V7,V8,V9))
+names(skeletal.muscle.aniso1.both) = c("chr", "start", "end", "type", "strand", "count")
+skeletal.muscle.aniso2.both = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-skeletal-muscle-aniso2_S2_L001_99_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+skeletal.muscle.aniso2.both = select(skeletal.muscle.aniso2.both,-c(V5,V7,V8,V9))
+names(skeletal.muscle.aniso2.both) = c("chr", "start", "end", "type", "strand", "count")
+
+#Forward
+airway.epithelium.iso1.fwd = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-airway-epithelium-iso1_S1_L001_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+airway.epithelium.iso1.fwd = select(airway.epithelium.iso1.fwd,-c(V5,V7,V8,V9))
+names(airway.epithelium.iso1.fwd) = c("chr", "start", "end", "type", "strand", "count")
+airway.epithelium.iso2.fwd = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-airway-epithelium-iso2_S2_L001_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+airway.epithelium.iso2.fwd = select(airway.epithelium.iso2.fwd,-c(V5,V7,V8,V9))
+names(airway.epithelium.iso2.fwd) = c("chr", "start", "end", "type", "strand", "count")
+aortic.endothelium.aniso1.fwd = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-aortic-endothelium-aniso1_S1_L001_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+aortic.endothelium.aniso1.fwd = select(aortic.endothelium.aniso1.fwd,-c(V5,V7,V8,V9))
+names(aortic.endothelium.aniso1.fwd) = c("chr", "start", "end", "type", "strand", "count")
+aortic.endothelium.aniso2.fwd = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-aortic-endothelium-aniso2_S2_L001_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+aortic.endothelium.aniso2.fwd = select(aortic.endothelium.aniso2.fwd,-c(V5,V7,V8,V9))
+names(aortic.endothelium.aniso2.fwd) = c("chr", "start", "end", "type", "strand", "count")
+mammary.epithelium.iso1.fwd = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-mammary-epithelium-iso1_S1_L001_mapped_f16_f16_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+mammary.epithelium.iso1.fwd = select(mammary.epithelium.iso1.fwd,-c(V5,V7,V8,V9))
+names(mammary.epithelium.iso1.fwd) = c("chr", "start", "end", "type", "strand", "count")
+mammary.epithelium.iso2.fwd = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-mammary-epithelium-iso2_S2_L001_mapped_f16_f16_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+mammary.epithelium.iso2.fwd = select(mammary.epithelium.iso2.fwd,-c(V5,V7,V8,V9))
+names(mammary.epithelium.iso2.fwd) = c("chr", "start", "end", "type", "strand", "count")
+placental.epithelium.aniso1.fwd = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-placental-epithelium-aniso1_S1_L001_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+placental.epithelium.aniso1.fwd = select(placental.epithelium.aniso1.fwd,-c(V5,V7,V8,V9))
+names(placental.epithelium.aniso1.fwd) = c("chr", "start", "end", "type", "strand", "count")
+placental.epithelium.aniso2.fwd = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-placental-epithelium-aniso2_S2_L001_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+placental.epithelium.aniso2.fwd = select(placental.epithelium.aniso2.fwd,-c(V5,V7,V8,V9))
+names(placental.epithelium.aniso2.fwd) = c("chr", "start", "end", "type", "strand", "count")
+preadipocyte.aniso1.fwd = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-preadipocyte-aniso1_S1_L001_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+preadipocyte.aniso1.fwd = select(preadipocyte.aniso1.fwd,-c(V5,V7,V8,V9))
+names(preadipocyte.aniso1.fwd) = c("chr", "start", "end", "type", "strand", "count")
+preadipocyte.aniso2.fwd = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-preadipocyte-aniso2_S2_L001_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+preadipocyte.aniso2.fwd = select(preadipocyte.aniso2.fwd,-c(V5,V7,V8,V9))
+names(preadipocyte.aniso2.fwd) = c("chr", "start", "end", "type", "strand", "count")
+skeletal.muscle.aniso1.fwd = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-skeletal-muscle-aniso1_S1_L001_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+skeletal.muscle.aniso1.fwd = select(skeletal.muscle.aniso1.fwd,-c(V5,V7,V8,V9))
+names(skeletal.muscle.aniso1.fwd) = c("chr", "start", "end", "type", "strand", "count")
+skeletal.muscle.aniso2.fwd = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-skeletal-muscle-aniso2_S2_L001_83_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+skeletal.muscle.aniso2.fwd = select(skeletal.muscle.aniso2.fwd,-c(V5,V7,V8,V9))
+names(skeletal.muscle.aniso2.fwd) = c("chr", "start", "end", "type", "strand", "count")
+
+#Reverse
+airway.epithelium.iso1.rvs = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-airway-epithelium-iso1_S1_L001_99_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+airway.epithelium.iso1.rvs = select(airway.epithelium.iso1.rvs,-c(V5,V7,V8,V9))
+names(airway.epithelium.iso1.rvs) = c("chr", "start", "end", "type", "strand", "count")
+airway.epithelium.iso2.rvs = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-airway-epithelium-iso2_S2_L001_99_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+airway.epithelium.iso2.rvs = select(airway.epithelium.iso2.rvs,-c(V5,V7,V8,V9))
+names(airway.epithelium.iso2.rvs) = c("chr", "start", "end", "type", "strand", "count")
+aortic.endothelium.aniso1.rvs = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-aortic-endothelium-aniso1_S1_L001_99_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+aortic.endothelium.aniso1.rvs = select(aortic.endothelium.aniso1.rvs,-c(V5,V7,V8,V9))
+names(aortic.endothelium.aniso1.rvs) = c("chr", "start", "end", "type", "strand", "count")
+aortic.endothelium.aniso2.rvs = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-aortic-endothelium-aniso2_S2_L001_99_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+aortic.endothelium.aniso2.rvs = select(aortic.endothelium.aniso2.rvs,-c(V5,V7,V8,V9))
+names(aortic.endothelium.aniso2.rvs) = c("chr", "start", "end", "type", "strand", "count")
+mammary.epithelium.iso1.rvs = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-mammary-epithelium-iso1_S1_L001_mapped_F16_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+mammary.epithelium.iso1.rvs = select(mammary.epithelium.iso1.rvs,-c(V5,V7,V8,V9))
+names(mammary.epithelium.iso1.rvs) = c("chr", "start", "end", "type", "strand", "count")
+mammary.epithelium.iso2.rvs = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-mammary-epithelium-iso2_S2_L001_mapped_F16_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+mammary.epithelium.iso2.rvs = select(mammary.epithelium.iso2.rvs,-c(V5,V7,V8,V9))
+names(mammary.epithelium.iso2.rvs) = c("chr", "start", "end", "type", "strand", "count")
+placental.epithelium.aniso1.rvs = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-placental-epithelium-aniso1_S1_L001_99_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+placental.epithelium.aniso1.rvs = select(placental.epithelium.aniso1.rvs,-c(V5,V7,V8,V9))
+names(placental.epithelium.aniso1.rvs) = c("chr", "start", "end", "type", "strand", "count")
+placental.epithelium.aniso2.rvs = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-placental-epithelium-aniso2_S2_L001_99_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+placental.epithelium.aniso2.rvs = select(placental.epithelium.aniso2.rvs,-c(V5,V7,V8,V9))
+names(placental.epithelium.aniso2.rvs) = c("chr", "start", "end", "type", "strand", "count")
+preadipocyte.aniso1.rvs = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-preadipocyte-aniso1_S1_L001_99_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+preadipocyte.aniso1.rvs = select(preadipocyte.aniso1.rvs,-c(V5,V7,V8,V9))
+names(preadipocyte.aniso1.rvs) = c("chr", "start", "end", "type", "strand", "count")
+preadipocyte.aniso2.rvs = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-preadipocyte-aniso2_S2_L001_99_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+preadipocyte.aniso2.rvs = select(preadipocyte.aniso2.rvs,-c(V5,V7,V8,V9))
+names(preadipocyte.aniso2.rvs) = c("chr", "start", "end", "type", "strand", "count")
+skeletal.muscle.aniso1.rvs = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-skeletal-muscle-aniso1_S1_L001_99_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+skeletal.muscle.aniso1.rvs = select(skeletal.muscle.aniso1.rvs,-c(V5,V7,V8,V9))
+names(skeletal.muscle.aniso1.rvs) = c("chr", "start", "end", "type", "strand", "count")
+skeletal.muscle.aniso2.rvs = read.delim('/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/total-skeletal-muscle-aniso2_S2_L001_99_filtered_sorted.bam.bed', header = F,  sep="\t", stringsAsFactors = F)
+skeletal.muscle.aniso2.rvs = select(skeletal.muscle.aniso2.rvs,-c(V5,V7,V8,V9))
+names(skeletal.muscle.aniso2.rvs) = c("chr", "start", "end", "type", "strand", "count")
+```
+
+```{r}
+#Calculate both
+airway.epithelium.iso1.both = airway.epithelium.iso1.both %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+airway.epithelium.iso2.both = airway.epithelium.iso2.both %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+aortic.endothelium.aniso1.both = aortic.endothelium.aniso1.both %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+aortic.endothelium.aniso2.both = aortic.endothelium.aniso2.both %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+mammary.epithelium.iso1.both = mammary.epithelium.iso1.both %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+mammary.epithelium.iso2.both = mammary.epithelium.iso2.both %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+placental.epithelium.aniso1.both = placental.epithelium.aniso1.both %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+placental.epithelium.aniso2.both = placental.epithelium.aniso2.both %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+preadipocyte.aniso1.both = preadipocyte.aniso1.both %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+preadipocyte.aniso2.both = preadipocyte.aniso2.both %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+skeletal.muscle.aniso1.both = skeletal.muscle.aniso1.both %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+skeletal.muscle.aniso2.both = skeletal.muscle.aniso2.both %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+
+#Calculate forward
+airway.epithelium.iso1.fwd = airway.epithelium.iso1.fwd %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+airway.epithelium.iso2.fwd = airway.epithelium.iso2.fwd %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+aortic.endothelium.aniso1.fwd = aortic.endothelium.aniso1.fwd %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+aortic.endothelium.aniso2.fwd = aortic.endothelium.aniso2.fwd %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+mammary.epithelium.iso1.fwd = mammary.epithelium.iso1.fwd %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+mammary.epithelium.iso2.fwd = mammary.epithelium.iso2.fwd %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+placental.epithelium.aniso1.fwd = placental.epithelium.aniso1.fwd %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+placental.epithelium.aniso2.fwd = placental.epithelium.aniso2.fwd %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+preadipocyte.aniso1.fwd = preadipocyte.aniso1.fwd %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+preadipocyte.aniso2.fwd = preadipocyte.aniso2.fwd %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+skeletal.muscle.aniso1.fwd = skeletal.muscle.aniso1.fwd %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+skeletal.muscle.aniso2.fwd = skeletal.muscle.aniso2.fwd %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+
+#Calculate reverse
+airway.epithelium.iso1.rvs = airway.epithelium.iso1.rvs %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+airway.epithelium.iso2.rvs = airway.epithelium.iso2.rvs %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+aortic.endothelium.aniso1.rvs = aortic.endothelium.aniso1.rvs %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+aortic.endothelium.aniso2.rvs = aortic.endothelium.aniso2.rvs %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+mammary.epithelium.iso1.rvs = mammary.epithelium.iso1.rvs %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+mammary.epithelium.iso2.rvs = mammary.epithelium.iso2.rvs %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+placental.epithelium.aniso1.rvs = placental.epithelium.aniso1.rvs %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+placental.epithelium.aniso2.rvs = placental.epithelium.aniso2.rvs %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+preadipocyte.aniso1.rvs = preadipocyte.aniso1.rvs %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+preadipocyte.aniso2.rvs = preadipocyte.aniso2.rvs %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+skeletal.muscle.aniso1.rvs = skeletal.muscle.aniso1.rvs %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+skeletal.muscle.aniso2.rvs = skeletal.muscle.aniso2.rvs %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+```
+
+```{r}
+total_alphasat = as.data.frame(cbind(airway.epithelium.iso1.both$type_common, airway.epithelium.iso1.both$rpk,airway.epithelium.iso2.both$rpk,aortic.endothelium.aniso1.both$rpk,aortic.endothelium.aniso2.both$rpk,mammary.epithelium.iso1.both$rpk,mammary.epithelium.iso2.both$rpk,placental.epithelium.aniso1.both$rpk,placental.epithelium.aniso2.both$rpk,preadipocyte.aniso1.both$rpk,preadipocyte.aniso2.both$rpk,skeletal.muscle.aniso1.both$rpk,skeletal.muscle.aniso2.both$rpk))
+colnames(total_alphasat) <- c("Type", "Airway epithelium iso 1", "Airway epithelium iso 2", "Aortic endothelium aniso 1", "Aortic endothelium aniso 2", "Mammary epithelium iso 1", "Mammary epithelium iso 2", "Placental epithelium aniso 1", "Placental epithelium aniso 2", "Preadipocyte aniso 1", "Preadipocyte aniso 2", "Skeletal muscle aniso 1", "Skeletal muscle aniso 2")
+m <-as.matrix(sapply(total_alphasat[,2:13], as.numeric))
+rownames(m) <- total_alphasat$Type
+
+total_alphasat.forward = as.data.frame(cbind(airway.epithelium.iso1.fwd$type_common,airway.epithelium.iso1.fwd$rpk,airway.epithelium.iso2.fwd$rpk,aortic.endothelium.aniso1.fwd$rpk,aortic.endothelium.aniso2.fwd$rpk,mammary.epithelium.iso1.fwd$rpk,mammary.epithelium.iso2.fwd$rpk,placental.epithelium.aniso1.fwd$rpk,placental.epithelium.aniso2.fwd$rpk,preadipocyte.aniso1.fwd$rpk,preadipocyte.aniso2.fwd$rpk,skeletal.muscle.aniso1.fwd$rpk,skeletal.muscle.aniso2.fwd$rpk))
+colnames(total_alphasat.forward) <- c("Type", "Airway epithelium iso 1", "Airway epithelium iso 2", "Aortic endothelium aniso 1", "Aortic endothelium aniso 2", "Mammary epithelium iso 1", "Mammary epithelium iso 2", "Placental epithelium aniso 1", "Placental epithelium aniso 2", "Preadipocyte aniso 1", "Preadipocyte aniso 2", "Skeletal muscle aniso 1", "Skeletal muscle aniso 2")
+m.fwd <-as.matrix(sapply(total_alphasat.forward[,2:13], as.numeric))
+rownames(m.fwd) <- total_alphasat.forward$Type
+
+total_alphasat.reverse = as.data.frame(cbind(airway.epithelium.iso1.rvs$type_common,airway.epithelium.iso1.rvs$rpk,airway.epithelium.iso2.rvs$rpk,aortic.endothelium.aniso1.rvs$rpk,aortic.endothelium.aniso2.rvs$rpk,mammary.epithelium.iso1.rvs$rpk,mammary.epithelium.iso2.rvs$rpk,placental.epithelium.aniso1.rvs$rpk,placental.epithelium.aniso2.rvs$rpk,preadipocyte.aniso1.rvs$rpk,preadipocyte.aniso2.rvs$rpk,skeletal.muscle.aniso1.rvs$rpk,skeletal.muscle.aniso2.rvs$rpk))
+colnames(total_alphasat.reverse) <- c("Type", "Airway epithelium iso 1", "Airway epithelium iso 2", "Aortic endothelium aniso 1", "Aortic endothelium aniso 2", "Mammary epithelium iso 1", "Mammary epithelium iso 2", "Placental epithelium aniso 1", "Placental epithelium aniso 2", "Preadipocyte aniso 1", "Preadipocyte aniso 2", "Skeletal muscle aniso 1", "Skeletal muscle aniso 2")
+m.rvs <-as.matrix(sapply(total_alphasat.reverse[,2:13], as.numeric))
+rownames(m.rvs) <- total_alphasat.reverse$Type
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+logm = log2(m+1)
+logm.fwd = log2(m.fwd+1)
+logm.rvs = log2(m.rvs+1)
+```
+
+```{r}
+col_fun_both = colorRamp2(c(min(logm), 0, max(logm)), c("#ffffff", "#673ab7", "#522e93"))
+col_fun_fwd = colorRamp2(c(min(logm), 0, max(logm)), c("#ffffff", "#8E8AFF", "#0D00FF"))
+col_fun_rvs = colorRamp2(c(min(logm), 0, max(logm)), c("#ffffff", "#FF8A8A", "#FF0000"))
+fig.total = 
+  Heatmap(logm, cluster_columns = F, row_names_side = "right", column_names_side = "bottom", row_dend_side = "left", col = col_fun_both, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK")) +
+  Heatmap(logm.fwd, cluster_columns = F, row_names_side = "right", column_names_side = "bottom", row_dend_side = "left", col = col_fun_fwd, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK")) +
+  Heatmap(logm.rvs, cluster_columns = F, row_names_side = "right", column_names_side = "bottom", row_dend_side = "left", col = col_fun_rvs, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK"))
+fig.total
+```
+
+```{r}
+pdf(file="/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/fig_total_flags_three.pdf",
+    width=18,
+    height=12)
+draw(fig.total)
+dev.off()
+```
+
+```{r}
+###m = m[rowSums(m) > 1,]
+###m = m[rowSums(m) > 0,]
+#m = m[rowSums(m >= 1) >= 1, ]
+#logm.total = log2(m+1)
+
+logm = log2(m+1)
+logm.total = logm[r,]
+
+col_fun_both_total = colorRamp2(c(min(logm.total), 0, max(logm.total)), c("#ffffff", "#673ab7", "#522e93"))
+fig.total = 
+  Heatmap(logm.total, cluster_columns = F, row_names_side = "right", column_names_side = "bottom", row_dend_side = "left", col = col_fun_both_total, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK"))
+fig.total = draw(fig.total)
+```
+
+```{r}
+a = c(row_order(fig.total))
+r = rownames(logm.total[a,])
+r
+```
+
+```{r}
+pdf(file="/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/fig_total_flags_sele_hard.pdf",
+    width=6,
+    height=6)
+draw(fig.total)
+dev.off()
+```
+
+```{r}
+m.fwd = m.fwd[rowSums(m.fwd >= 0.5) >= 1, ]
+logm.fwd = log2(m.fwd+1)
+col_fun_fwd = colorRamp2(c(min(logm.fwd), 0, max(logm.fwd)), c("#ffffff", "#8E8AFF", "#0D00FF"))
+fig.total = 
+  Heatmap(logm.fwd, cluster_columns = F, row_names_side = "right", column_names_side = "bottom", row_dend_side = "left", col = col_fun_fwd, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK"))
+fig.total = draw(fig.total)
+```
+
+```{r}
+m.rvs = m.rvs[rowSums(m.rvs >= 1) >= 1, ]
+logm.rvs = log2(m.rvs+1)
+col_fun_rvs = colorRamp2(c(min(logm.rvs), 0, max(logm.rvs)), c("#ffffff", "#FF8A8A", "#FF0000"))
+#col_fun_fwd_to_rvs = colorRamp2(c(min(logm), 0, max(logm)), c("#FF0000", "#ffffff", "#0D00FF"))
+fig.total = 
+  Heatmap(logm.rvs, cluster_columns = F, row_names_side = "right", column_names_side = "bottom", row_dend_side = "left", col = col_fun_rvs, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK"))
+fig.total = draw(fig.total)
+```
+
+```{r}
+#We use this one
+mordered.fwd = m.fwd[r,]
+mordered.rvs = m.rvs[r,]
+mordered.fwd.to.rvs = log2((mordered.fwd + .01) / (mordered.rvs + .01))
+mordered.fwd.to.rvs = as.data.frame(mordered.fwd.to.rvs)
+mordered.fwd.to.rvs = mordered.fwd.to.rvs %>%
+  mutate(hor = rownames(mordered.fwd.to.rvs)) %>%
+  mutate(sum = rowSums(.[1:12])) %>%
+  mutate(strand = str_extract(hor, "[^_]+$")) %>%
+  group_by(strand) %>%
+  arrange(desc(sum), .by_group = TRUE) %>%
+  ungroup() %>%
+  select(13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12) %>%
+  remove_rownames %>%
+  column_to_rownames(var="hor")
+mordered.fwd.to.rvs = as.matrix(mordered.fwd.to.rvs)
+
+col_fun_fwd_to_rvs = colorRamp2(c(min(mordered.fwd.to.rvs), 0, max(mordered.fwd.to.rvs)), c("#FF0000", "#ffffff", "#0D00FF"))
+fig.total = 
+  Heatmap(mordered.fwd.to.rvs, cluster_columns = F, cluster_rows = F, row_names_side = "right", column_names_side = "bottom", row_dend_side = "left", col = col_fun_fwd_to_rvs, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK"))
+fig.total = draw(fig.total)
+#log2((FPK forward + 0.01) / (FPK reverse + 0.01))
+```
+```{r}
+a = c(row_order(fig.total))
+r = rownames(mordered.fwd.to.rvs[a,])
+r
+```
+
+```{r}
+#We do not use this one, as we cannot explain its biological meaning
+#mordered.fwd = m.fwd[r,]
+#mordered.rvs = m.rvs[r,]
+mordered.fwd = m.fwd
+mordered.rvs = m.rvs
+mordered.fwd.to.rvs = log2((mordered.fwd + .01) / (mordered.rvs + .01))
+mordered.fwd.to.rvs = as.data.frame(mordered.fwd.to.rvs)
+mordered.fwd.to.rvs = mordered.fwd.to.rvs %>%
+  mutate(hor = rownames(mordered.fwd.to.rvs)) %>%
+  mutate(sum = rowSums(.[1:12])) %>%
+  mutate(strand = str_extract(hor, "[^_]+$")) %>%
+  group_by(strand) %>%
+  arrange(desc(sum), .by_group = TRUE) %>%
+  ungroup() %>%
+  select(13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12) %>%
+  remove_rownames %>%
+  column_to_rownames(var="hor")
+mordered.fwd.to.rvs = as.matrix(mordered.fwd.to.rvs)
+
+col_fun_fwd_to_rvs = colorRamp2(c(min(mordered.fwd.to.rvs), 0, max(mordered.fwd.to.rvs)), c("#FF0000", "#ffffff", "#0D00FF"))
+fig.total = 
+  Heatmap(mordered.fwd.to.rvs, cluster_columns = F, cluster_rows = F, row_names_side = "right", column_names_side = "bottom", row_dend_side = "left", col = col_fun_fwd_to_rvs, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK"))
+fig.total = draw(fig.total)
+```
+
+```{r}
+pdf(file="/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/fig_total_flags_sele_stranded_ratio_filtered.pdf",
+    width=6,
+    height=6)
+draw(fig.total)
+dev.off()
+```
+
+```{r}
+max(m)
+```

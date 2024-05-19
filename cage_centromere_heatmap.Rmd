@@ -1,0 +1,529 @@
+---
+title: "RNA-seq T2T analysis"
+author: "Pavel Nikitin, Sviatoslav Sidorov"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+Load libraries:
+
+```{r}
+library(dplyr)
+library(stringr)
+library(tibble)
+library(ggplot2)
+library(RColorBrewer)
+library(colorRamp2)
+library(circlize)
+library(ComplexHeatmap)
+stringsAsFactors = F
+```
+
+Set path to file:
+cage_mammary_epithelium_sorted_intersected.bed
+cage_mammary_epithelium_sorted_forward_intersected.bed
+cage_mammary_epithelium_sorted_reverse_intersected.bed
+
+```{r}
+#CAGE
+#Path both
+airway.epithelium.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_airway_epithelium_sorted_intersected.bed'
+aortic.endothelium.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_aortic_endothelium_sorted_intersected.bed'
+mammary.epithelium.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_mammary_epithelium_sorted_intersected.bed'
+placental.epithelium.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_placental_epithelium_sorted_intersected.bed'
+preadipocyte.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_preadipocyte_sorted_intersected.bed'
+skeletal.muscle.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_skeletal_muscle_sorted_intersected.bed'
+
+#Path forward
+airway.epithelium.forward.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_airway_epithelium_sorted_forward_intersected.bed'
+aortic.endothelium.forward.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_aortic_endothelium_sorted_forward_intersected.bed'
+mammary.epithelium.forward.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_mammary_epithelium_sorted_forward_intersected.bed'
+placental.epithelium.forward.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_placental_epithelium_sorted_forward_intersected.bed'
+preadipocyte.forward.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_preadipocyte_sorted_forward_intersected.bed'
+skeletal.muscle.forward.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_skeletal_muscle_sorted_forward_intersected.bed'
+
+#Path reverse
+airway.epithelium.reverse.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_airway_epithelium_sorted_reverse_intersected.bed'
+aortic.endothelium.reverse.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_aortic_endothelium_sorted_reverse_intersected.bed'
+mammary.epithelium.reverse.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_mammary_epithelium_sorted_reverse_intersected.bed'
+placental.epithelium.reverse.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_placental_epithelium_sorted_reverse_intersected.bed'
+preadipocyte.reverse.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_preadipocyte_sorted_reverse_intersected.bed'
+skeletal.muscle.reverse.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_skeletal_muscle_sorted_reverse_intersected.bed'
+```
+
+```{r}
+#Total RNA
+#Path both
+airway.epithelium.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/total_rnaseq_cen_quant/cage_airway_epithelium_sorted_intersected.bed'
+aortic.endothelium.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_aortic_endothelium_sorted_intersected.bed'
+mammary.epithelium.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_mammary_epithelium_sorted_intersected.bed'
+placental.epithelium.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_placental_epithelium_sorted_intersected.bed'
+preadipocyte.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_preadipocyte_sorted_intersected.bed'
+skeletal.muscle.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_skeletal_muscle_sorted_intersected.bed'
+
+#Path forward
+airway.epithelium.forward.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_airway_epithelium_sorted_forward_intersected.bed'
+aortic.endothelium.forward.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_aortic_endothelium_sorted_forward_intersected.bed'
+mammary.epithelium.forward.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_mammary_epithelium_sorted_forward_intersected.bed'
+placental.epithelium.forward.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_placental_epithelium_sorted_forward_intersected.bed'
+preadipocyte.forward.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_preadipocyte_sorted_forward_intersected.bed'
+skeletal.muscle.forward.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_skeletal_muscle_sorted_forward_intersected.bed'
+
+#Path reverse
+airway.epithelium.reverse.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_airway_epithelium_sorted_reverse_intersected.bed'
+aortic.endothelium.reverse.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_aortic_endothelium_sorted_reverse_intersected.bed'
+mammary.epithelium.reverse.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_mammary_epithelium_sorted_reverse_intersected.bed'
+placental.epithelium.reverse.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_placental_epithelium_sorted_reverse_intersected.bed'
+preadipocyte.reverse.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_preadipocyte_sorted_reverse_intersected.bed'
+skeletal.muscle.reverse.path = '/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/cage_skeletal_muscle_sorted_reverse_intersected.bed'
+```
+
+Upload bed files as tables:
+
+```{r}
+#Load both
+airway.epithelium <- read.delim(airway.epithelium.path, header = F,  sep="\t", stringsAsFactors = F)
+airway.epithelium = select(airway.epithelium,-c(V5,V7,V8,V9))
+names(airway.epithelium) = c("chr", "start", "end", "type", "strand", "count")
+aortic.endothelium <- read.delim(aortic.endothelium.path, header = F,  sep="\t", stringsAsFactors = F)
+aortic.endothelium = select(aortic.endothelium,-c(V5,V7,V8,V9))
+names(aortic.endothelium) = c("chr", "start", "end", "type", "strand", "count")
+mammary.epithelium <- read.delim(mammary.epithelium.path, header = F,  sep="\t", stringsAsFactors = F)
+mammary.epithelium = select(mammary.epithelium,-c(V5,V7,V8,V9))
+names(mammary.epithelium) = c("chr", "start", "end", "type", "strand", "count")
+placental.epithelium <- read.delim(placental.epithelium.path, header = F,  sep="\t", stringsAsFactors = F)
+placental.epithelium = select(placental.epithelium,-c(V5,V7,V8,V9))
+names(placental.epithelium) = c("chr", "start", "end", "type", "strand", "count")
+preadipocyte <- read.delim(preadipocyte.path, header = F,  sep="\t", stringsAsFactors = F)
+preadipocyte = select(preadipocyte,-c(V5,V7,V8,V9))
+names(preadipocyte) = c("chr", "start", "end", "type", "strand", "count")
+skeletal.muscle <- read.delim(skeletal.muscle.path, header = F,  sep="\t", stringsAsFactors = F)
+skeletal.muscle = select(skeletal.muscle,-c(V5,V7,V8,V9))
+names(skeletal.muscle) = c("chr", "start", "end", "type", "strand", "count")
+
+#Load forward
+airway.epithelium.forward <- read.delim(airway.epithelium.forward.path, header = F,  sep="\t", stringsAsFactors = F)
+airway.epithelium.forward = select(airway.epithelium.forward,-c(V5,V7,V8,V9))
+names(airway.epithelium.forward) = c("chr", "start", "end", "type", "strand", "count")
+aortic.endothelium.forward <- read.delim(aortic.endothelium.forward.path, header = F,  sep="\t", stringsAsFactors = F)
+aortic.endothelium.forward = select(aortic.endothelium.forward,-c(V5,V7,V8,V9))
+names(aortic.endothelium.forward) = c("chr", "start", "end", "type", "strand", "count")
+mammary.epithelium.forward <- read.delim(mammary.epithelium.forward.path, header = F,  sep="\t", stringsAsFactors = F)
+mammary.epithelium.forward = select(mammary.epithelium.forward,-c(V5,V7,V8,V9))
+names(mammary.epithelium.forward) = c("chr", "start", "end", "type", "strand", "count")
+placental.epithelium.forward <- read.delim(placental.epithelium.forward.path, header = F,  sep="\t", stringsAsFactors = F)
+placental.epithelium.forward = select(placental.epithelium.forward,-c(V5,V7,V8,V9))
+names(placental.epithelium.forward) = c("chr", "start", "end", "type", "strand", "count")
+preadipocyte.forward <- read.delim(preadipocyte.forward.path, header = F,  sep="\t", stringsAsFactors = F)
+preadipocyte.forward = select(preadipocyte.forward,-c(V5,V7,V8,V9))
+names(preadipocyte.forward) = c("chr", "start", "end", "type", "strand", "count")
+skeletal.muscle.forward <- read.delim(skeletal.muscle.forward.path, header = F,  sep="\t", stringsAsFactors = F)
+skeletal.muscle.forward = select(skeletal.muscle.forward,-c(V5,V7,V8,V9))
+names(skeletal.muscle.forward) = c("chr", "start", "end", "type", "strand", "count")
+
+#Load reverse
+airway.epithelium.reverse <- read.delim(airway.epithelium.reverse.path, header = F,  sep="\t", stringsAsFactors = F)
+airway.epithelium.reverse = select(airway.epithelium.reverse,-c(V5,V7,V8,V9))
+names(airway.epithelium.reverse) = c("chr", "start", "end", "type", "strand", "count")
+aortic.endothelium.reverse <- read.delim(aortic.endothelium.reverse.path, header = F,  sep="\t", stringsAsFactors = F)
+aortic.endothelium.reverse = select(aortic.endothelium.reverse,-c(V5,V7,V8,V9))
+names(aortic.endothelium.reverse) = c("chr", "start", "end", "type", "strand", "count")
+mammary.epithelium.reverse <- read.delim(mammary.epithelium.reverse.path, header = F,  sep="\t", stringsAsFactors = F)
+mammary.epithelium.reverse = select(mammary.epithelium.reverse,-c(V5,V7,V8,V9))
+names(mammary.epithelium.reverse) = c("chr", "start", "end", "type", "strand", "count")
+placental.epithelium.reverse <- read.delim(placental.epithelium.reverse.path, header = F,  sep="\t", stringsAsFactors = F)
+placental.epithelium.reverse = select(placental.epithelium.reverse,-c(V5,V7,V8,V9))
+names(placental.epithelium.reverse) = c("chr", "start", "end", "type", "strand", "count")
+preadipocyte.reverse <- read.delim(preadipocyte.reverse.path, header = F,  sep="\t", stringsAsFactors = F)
+preadipocyte.reverse = select(preadipocyte.reverse,-c(V5,V7,V8,V9))
+names(preadipocyte.reverse) = c("chr", "start", "end", "type", "strand", "count")
+skeletal.muscle.reverse <- read.delim(skeletal.muscle.reverse.path, header = F,  sep="\t", stringsAsFactors = F)
+skeletal.muscle.reverse = select(skeletal.muscle.reverse,-c(V5,V7,V8,V9))
+names(skeletal.muscle.reverse) = c("chr", "start", "end", "type", "strand", "count")
+```
+
+Set library sizes
+```{r}
+airway.epithelium.size = 16259901
+aortic.endothelium.size = 28989905
+mammary.epithelium.size = 17959761
+placental.epithelium.size = 20169821
+preadipocyte.size = 8960895
+skeletal.muscle.size = 15996652
+```
+
+We use this now
+
+airway.epithelium
+aortic.endothelium
+mammary.epithelium
+placental.epithelium
+preadipocyte
+skeletal.muscle
+
+```{r}
+# airway.epithelium.test = airway.epithelium %>%
+#   mutate(length = end - start) %>%
+#   mutate(type_common = paste(type, strand, row_number(), sep = "_")) %>%
+#   mutate(rpk = (count * 1000) / length) %>%
+#   mutate(rpkm = (count * 1000 * 1000000) / (airway.epithelium.size * length)) %>%
+#   mutate(tpm = (rpkm / sum(rpkm) * 1000000))
+
+#Calculate RPK both
+airway.epithelium = airway.epithelium %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+aortic.endothelium = aortic.endothelium %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+mammary.epithelium = mammary.epithelium %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+placental.epithelium = placental.epithelium %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+preadipocyte = preadipocyte %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+skeletal.muscle = skeletal.muscle %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+
+#Calculate forward
+airway.epithelium.forward = airway.epithelium.forward %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+aortic.endothelium.forward = aortic.endothelium.forward %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+mammary.epithelium.forward = mammary.epithelium.forward %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+placental.epithelium.forward = placental.epithelium.forward %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+preadipocyte.forward = preadipocyte.forward %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+skeletal.muscle.forward = skeletal.muscle.forward %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+
+#Calculate reverse
+airway.epithelium.reverse = airway.epithelium.reverse %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+aortic.endothelium.reverse = aortic.endothelium.reverse %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+mammary.epithelium.reverse = mammary.epithelium.reverse %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+placental.epithelium.reverse = placental.epithelium.reverse %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+preadipocyte.reverse = preadipocyte.reverse %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+skeletal.muscle.reverse = skeletal.muscle.reverse %>%
+  mutate(length = end - start) %>%
+  mutate(type_common = paste(type, strand, sep = "_")) %>%
+  mutate(rpk = (count * 1000) / length)
+```
+
+```{r}
+#sum(airway.epithelium.test$rpk)
+#sum(airway.epithelium.test$rpkm)
+#sum(airway.epithelium.test$tpm)
+
+sum(airway.epithelium$rpk)
+sum(aortic.endothelium$rpk)
+sum(mammary.epithelium$rpk)
+sum(placental.epithelium$rpk)
+sum(preadipocyte$rpk)
+sum(skeletal.muscle$rpk)
+```
+
+Merge tables into one
+log2(rpk+1) фиолетовеньким
+
+```{r}
+cage_alphasat = as.data.frame(cbind(airway.epithelium$type_common, airway.epithelium$rpk, aortic.endothelium$rpk, mammary.epithelium$rpk, placental.epithelium$rpk, preadipocyte$rpk, skeletal.muscle$rpk))
+colnames(cage_alphasat) <- c("Type", "Airway epithelium", "Aortic endothelium", "Mammary epithelium", "Placental epithelium", "Preadipocyte", "Skeletal muscle")
+m <-as.matrix(sapply(cage_alphasat[,2:7], as.numeric))
+rownames(m) <- cage_alphasat$Type
+
+cage_alphasat.forward = as.data.frame(cbind(airway.epithelium.forward$type_common, airway.epithelium.forward$rpk, aortic.endothelium.forward$rpk, mammary.epithelium.forward$rpk, placental.epithelium.forward$rpk, preadipocyte.forward$rpk, skeletal.muscle.forward$rpk))
+colnames(cage_alphasat.forward) <- c("Type", "Airway epithelium", "Aortic endothelium", "Mammary epithelium", "Placental epithelium", "Preadipocyte", "Skeletal muscle")
+m.fwd <-as.matrix(sapply(cage_alphasat.forward[,2:7], as.numeric))
+rownames(m.fwd) <- cage_alphasat.forward$Type
+
+cage_alphasat.reverse = as.data.frame(cbind(airway.epithelium.reverse$type_common, airway.epithelium.reverse$rpk, aortic.endothelium.reverse$rpk, mammary.epithelium.reverse$rpk, placental.epithelium.reverse$rpk, preadipocyte.reverse$rpk, skeletal.muscle.reverse$rpk))
+colnames(cage_alphasat.reverse) <- c("Type", "Airway epithelium", "Aortic endothelium", "Mammary epithelium", "Placental epithelium", "Preadipocyte", "Skeletal muscle")
+m.rvs <-as.matrix(sapply(cage_alphasat.reverse[,2:7], as.numeric))
+rownames(m.rvs) <- cage_alphasat.reverse$Type
+```
+
+```{r}
+logm = log2(m+1)
+logm.fwd = log2(m.fwd+1)
+logm.rvs = log2(m.rvs+1)
+#logm = logm[rowSums(logm[])>0,]
+#tlogm = t(logm)
+#zlogm = scale(tlogm)
+```
+
+```{r}
+#a is a variable from total_rna_bed.Rmd
+logm = log2(m+1)
+logmordered.cage = logm[r,]
+#logmordered
+col_fun_both_cage = colorRamp2(c(min(logmordered.cage), 0, max(logmordered.cage)), c("#ffffff", "#673ab7", "#522e93"))
+fig.cage = 
+  Heatmap(logmordered.cage, cluster_columns = F, cluster_rows = F, show_row_names=TRUE, column_names_side = "bottom", row_dend_side = "left", col = col_fun_both_cage, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK"))
+fig.cage = draw(fig.cage)
+```
+
+```{r}
+fig.both = 
+  Heatmap(logm.total, cluster_columns = F, cluster_rows = T, show_row_names=TRUE, row_names_side = "right", column_names_side = "bottom", row_dend_side = "left", col = col_fun_both_total, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK")) + 
+  Heatmap(logmordered.cage, cluster_columns = F, cluster_rows = F , show_row_names=TRUE, column_names_side = "bottom", row_dend_side = "left", col = col_fun_both_cage, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK"))
+fig.both = draw(fig.both)
+```
+
+```{r}
+pdf(file="/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/fig_both_strands_filtered.pdf",
+    width=12,
+    height=6)
+draw(fig.both)
+dev.off()
+```
+
+```{r}
+logm.fwd = log2(m.fwd+1)
+logmordered.fwd = logm.fwd[r,]
+# logmordered.fwd = as.data.frame(logmordered.fwd)
+# logmordered.fwd = logmordered.fwd %>%
+#   mutate(hor = rownames(logmordered.fwd)) %>%
+#   mutate(sum = rowSums(.[1:5])) %>%
+#   mutate(strand = str_extract(hor, "[^_]+$")) %>%
+#   group_by(strand) %>%
+#   arrange(desc(sum), .by_group = TRUE) %>%
+#   ungroup() %>%
+#   select(7, 1, 2, 3, 4, 5, 6) %>%
+#   remove_rownames %>%
+#   column_to_rownames(var="hor")
+# logmordered.fwd = as.matrix(logmordered.fwd)
+
+col_fun_fwd = colorRamp2(c(min(logmordered.fwd), 0, max(logmordered.fwd)), c("#ffffff", "#8E8AFF", "#0D00FF"))
+#col_fun_rvs = colorRamp2(c(min(logmordered.rvs), 0, max(logmordered.rvs)), c("#ffffff", "#FF8A8A", "#FF0000"))
+fig.cage = 
+  Heatmap(logmordered.fwd, cluster_columns = F, cluster_rows = F, show_row_names=TRUE, column_names_side = "bottom", row_dend_side = "left", col = col_fun_fwd, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK"))
+fig.cage = draw(fig.cage)
+```
+
+```{r}
+pdf(file="/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/fig_cage_k20_ms50_flags_from_total_fwd.pdf",
+    width=6,
+    height=6)
+draw(fig.cage)
+dev.off()
+```
+
+```{r}
+logm.rvs = log2(m.rvs+1)
+logmordered.rvs = logm.rvs[r,]
+# logmordered.rvs = as.data.frame(logmordered.rvs)
+# logmordered.rvs = logmordered.rvs %>%
+#   mutate(hor = rownames(logmordered.rvs)) %>%
+#   mutate(sum = rowSums(.[1:5])) %>%
+#   mutate(strand = str_extract(hor, "[^_]+$")) %>%
+#   group_by(strand) %>%
+#   arrange(desc(sum), .by_group = TRUE) %>%
+#   ungroup() %>%
+#   select(7, 1, 2, 3, 4, 5, 6) %>%
+#   remove_rownames %>%
+#   column_to_rownames(var="hor")
+# logmordered.rvs = as.matrix(logmordered.rvs)
+
+col_fun_rvs = colorRamp2(c(min(logmordered.rvs), 0, max(logmordered.rvs)), c("#ffffff", "#FF8A8A", "#FF0000"))
+fig.cage = 
+  Heatmap(logmordered.rvs, cluster_columns = F, cluster_rows = F, show_row_names=TRUE, column_names_side = "bottom", row_dend_side = "left", col = col_fun_rvs, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK"))
+fig.cage = draw(fig.cage)
+```
+
+```{r}
+pdf(file="/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/fig_cage_k20_ms50_flags_from_total_rvs.pdf",
+    width=6,
+    height=6)
+draw(fig.cage)
+dev.off()
+```
+
+```{r}
+fig.both = 
+  Heatmap(logmordered.fwd, cluster_columns = F, cluster_rows = F, show_row_names=TRUE, column_names_side = "bottom", row_dend_side = "left", col = col_fun_fwd, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK")) +
+  Heatmap(logmordered.rvs, cluster_columns = F, cluster_rows = F, show_row_names=TRUE, column_names_side = "bottom", row_dend_side = "left", col = col_fun_rvs, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK"))
+fig.both = draw(fig.both)
+```
+
+```{r}
+pdf(file="/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/fig_both_strands_comparison_filtered.pdf",
+    width=12,
+    height=6)
+draw(fig.both)
+dev.off()
+```
+
+```{r}
+mordered.fwd = m.fwd[r,]
+mordered.rvs = m.rvs[r,]
+# mordered.fwd = m.fwd
+# mordered.rvs = m.rvs
+mordered.fwd.to.rvs.cage = log2((mordered.fwd + .01) / (mordered.rvs + .01))
+# mordered.fwd.to.rvs.cage = as.data.frame(mordered.fwd.to.rvs.cage)
+# mordered.fwd.to.rvs.cage = mordered.fwd.to.rvs.cage %>%
+#   mutate(hor = rownames(mordered.fwd.to.rvs.cage)) %>%
+#   mutate(sum = rowSums(.[1:5])) %>%
+#   mutate(strand = str_extract(hor, "[^_]+$")) %>%
+#   group_by(strand) %>%
+#   arrange(desc(sum), .by_group = TRUE) %>%
+#   ungroup() %>%
+#   select(7, 1, 2, 3, 4, 5, 6) %>%
+#   remove_rownames %>%
+#   column_to_rownames(var="hor")
+# mordered.fwd.to.rvs.cage = as.matrix(mordered.fwd.to.rvs.cage)
+
+col_fun_fwd_to_rvs_cage = colorRamp2(c(min(mordered.fwd.to.rvs), 0, max(mordered.fwd.to.rvs.cage)), c("#FF0000", "#ffffff", "#0D00FF"))
+fig.cage = 
+  Heatmap(mordered.fwd.to.rvs.cage, cluster_columns = F, cluster_rows = F, row_names_side = "right", column_names_side = "bottom", row_dend_side = "left", col = col_fun_fwd_to_rvs_cage, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK"))
+fig.cage = draw(fig.cage)
+```
+
+```{r}
+pdf(file="/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/fig_cage_k20_ms50_flags_from_total_fwd_to_rvs_ratio_filtered.pdf",
+    width=6,
+    height=6)
+draw(fig.cage)
+dev.off()
+```
+
+```{r}
+fig.both = 
+  Heatmap(mordered.fwd.to.rvs, cluster_columns = F, cluster_rows = F, row_names_side = "right", column_names_side = "bottom", row_dend_side = "left", col = col_fun_fwd_to_rvs, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK")) + 
+  Heatmap(mordered.fwd.to.rvs.cage, cluster_columns = F, cluster_rows = F, row_names_side = "right", column_names_side = "bottom", row_dend_side = "left", col = col_fun_fwd_to_rvs_cage, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK"))
+fig.both = draw(fig.both)
+```
+
+```{r}
+pdf(file="/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/fig_both_fwd_to_rvs_ratio_filtered.pdf",
+    width=12,
+    height=6)
+draw(fig.both)
+dev.off()
+```
+
+```{r}
+#Something gone wrong
+fig.new =
+  Heatmap(logm, cluster_columns = F, cluster_rows = T, row_names_side = "left", column_names_side = "bottom", row_dend_side = "left", col = col_fun_both, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK")) +
+  Heatmap(logmordered, cluster_columns = F, cluster_rows = FALSE, row_names_side = "right", show_row_names=TRUE, column_names_side = "bottom", col = col_fun_both, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK"))
+fig.new = draw(fig.new)
+```
+
+
+```{r}
+col_fun_both = colorRamp2(c(min(logm), 0, max(logm)), c("#ffffff", "#673ab7", "#522e93"))
+fig.cage = 
+  Heatmap(logm, cluster_columns = F, show_row_names=FALSE, column_names_side = "bottom", row_dend_side = "left", col = col_fun_both, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK"))
+fig.cage = draw(fig.cage)
+#, cluster_columns = T
+```
+
+```{r}
+pdf(file="/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/fig_cage_k20_ms50_flags_no_rownames.pdf",
+    width=6,
+    height=12)
+draw(fig.cage)
+dev.off()
+```
+
+```{r}
+col_fun_both = colorRamp2(c(min(logm), 0, max(logm)), c("#ffffff", "#673ab7", "#522e93"))
+col_fun_fwd = colorRamp2(c(min(logm), 0, max(logm)), c("#ffffff", "#8E8AFF", "#0D00FF"))
+col_fun_rvs = colorRamp2(c(min(logm), 0, max(logm)), c("#ffffff", "#FF8A8A", "#FF0000"))
+fig.cage = 
+  Heatmap(logm, cluster_columns = F, row_names_side = "right", column_names_side = "bottom", row_dend_side = "left", col = col_fun_both, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK")) +
+  Heatmap(logm.fwd, cluster_columns = F, row_names_side = "right", column_names_side = "bottom", row_dend_side = "left", col = col_fun_fwd, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK")) +
+  Heatmap(logm.rvs, cluster_columns = F, row_names_side = "right", column_names_side = "bottom", row_dend_side = "left", col = col_fun_rvs, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2FPK"))
+fig.cage
+#, cluster_columns = T
+```
+
+```{r}
+pdf(file="/Users/pavel/Desktop/PROJECTS/hooman-2/total-cage/bedtools_cage/fig_cage_k20_ms50_flags_three.pdf",
+    width=18,
+    height=12)
+draw(fig.cage)
+dev.off()
+```
+
+
+
+
+#Template
+
+```{r}
+#png(file="heatmap_censat.png", width=2000, height=3000, res=300)
+heatmap(m, Colv = NA, Rowv = NA,
+        col = colorRampPalette(brewer.pal(8,"Blues"))(10))
+legend(x = "topright", legend = c("low", "medium", "high"),
+       cex = 0.8, fill = colorRampPalette(brewer.pal(8, "Blues"))(3))
+#dev.off()
+#, Colv = NA, Rowv = NA,
+#, row_names_side = "left", column_names_side = "top",
+```
+
+```{r}
+col_fun = colorRamp2(c(min(m), 0, max(m)), c("#ffffff", "#673ab7", "#522e93"))
+Heatmap(m, row_names_side = "right", column_names_side = "bottom", row_dend_side = "left", col = col_fun, cluster_columns = T, row_names_gp = gpar(fontsize = 5), heatmap_legend_param = list(title = "log2RPK"))
+```
+
+```{r}
+logm = log10(m+1)
+logm = logm[rowSums(logm[])>0,]
+# logm = na.omit(logm)
+tlogm = t(logm)
+zlogm = scale(tlogm)
+tzlogm = t(zlogm)
+# tzlogm <- na.omit(tzlogm)
+# tzlogm[is.nan(tzlogm)] <- 0
+# zlogm <- na.omit(zlogm)
+# zlogm[is.nan(zlogm)] <- 0
+```
+
+```{r}
+
+```
+
+```{r}
+
+```

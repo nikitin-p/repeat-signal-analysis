@@ -1,0 +1,194 @@
+#!/bin/bash
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate nf
+conda activate aws
+
+sbatch -c 2 --wrap=»/home/testuser/my_program arg1 arg2»
+
+aws s3 --no-sign-request cp s3://human-pangenomics/T2T/CHM13/assemblies/analysis_set/chm13v2.0.fa.gz .
+aws s3 --no-sign-request cp s3://human-pangenomics/T2T/CHM13/assemblies/analysis_set/chm13v2.0.fa.gz.gzi .
+aws s3 --no-sign-request cp s3://human-pangenomics/T2T/CHM13/assemblies/annotation/chm13v2.0_RefSeq_Liftoff_v5.1.gff3.gz .
+
+
+#!/bin/bash
+#SBATCH --job-name=nfrnaseq
+#SBATCH --error=nfrnaseq-%j.err
+#SBATCH --output=nfrnaseq-%j.log
+#SBATCH --time=48:00:00
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=22
+#SBATCH --mem=100G
+
+GENOME_SEQUENCE=/home/nikitinp/hooman_total_rna/genome_chm13/chm13v2.0.fa.gz
+GENOME_ANNOTATION=/home/nikitinp/hooman_total_rna/genome_chm13/annotation_sorted.gtf.gz
+SAMPLESHEET=/home/nikitinp/hooman_total_rna/samplesheet.csv
+OUTDIR=/home/nikitinp/gpfs/total_rnaseq_outdir
+
+nextflow run rnaseq \
+    -profile singularity \
+    -work /home/nikitinp/gpfs/work \
+    --input $SAMPLESHEET \
+    --outdir $OUTDIR \
+    --aligner star_rsem \
+    --save_reference \
+    --fasta $GENOME_SEQUENCE \
+    --gtf $GENOME_ANNOTATION \
+    --skip_pseudo_alignment \
+    --max_cpus 22 \
+	--max_memory '100.GB'
+
+
+
+
+STAR_INDEX=/mnt/disks/data/resources/genomes/STAR/GRCh38_overhang_50bp
+RSEM_INDEX=/mnt/disks/data/resources/genomes/RSEM/GRCh38_gencode
+
+	--fasta $GENOME_SEQUENCE \
+	--gtf $GENOME_ANNOTATION \
+	--star_index $STAR_INDEX \
+	--rsem_index $RSEM_INDEX \
+	--aligner 'star_rsem' \
+	--skip_markduplicates \ (?)
+	-profile docker \
+    --gene_bed $GENOME_ANNOTATION \
+
+aws s3 --no-sign-request cp s3://human-pangenomics/T2T/CHM13/assemblies/annotation/chm13v2.0_cytobands_allchrs.bed .
+aws s3 --no-sign-request cp s3://human-pangenomics/T2T/CHM13/assemblies/annotation/chm13v2.0_censat_v2.0.bed .
+aws s3 --no-sign-request cp s3://human-pangenomics/T2T/CHM13/assemblies/annotation/chm13v2.0_composite-repeats_2022DEC.bed .
+aws s3 --no-sign-request cp s3://human-pangenomics/T2T/CHM13/assemblies/annotation/chm13v2.0_new-satellites_2022DEC.bed .
+wget https://ftp.ensembl.org/pub/rapid-release/species/Homo_sapiens/GCA_009914755.4/ensembl/geneset/2022_07/Homo_sapiens-GCA_009914755.4-2022_07-genes.gtf.gz
+wget https://t2t.gi.ucsc.edu/chm13/hub/t2t-chm13-v2.0/compositeRepeats/Composite_track_CHM13v2.0.bb
+wget https://t2t.gi.ucsc.edu/chm13/hub/t2t-chm13-v2.0/as_annotation/ASat_HOR.bigBed
+wget https://t2t.gi.ucsc.edu/chm13/hub/t2t-chm13-v2.0/as_annotation/ASat_SF.bigBed
+
+bigBedToBed
+bedtools
+gtf2bed < Homo_sapiens-GCA_009914755.4-genes.gtf > Homo_sapiens-GCA_009914755.4-genes.bed
+
+bedtools intersect -a Homo_sapiens-GCA_009914755.4-2022_07-genes.gtf.gz -b chm13v2.0_censat_v2.0.bed -wa > intersect_annotation_on_censat.txt
+bedtools intersect -a Homo_sapiens-GCA_009914755.4-2022_07-genes.gtf.gz -b ASat_HOR.bed -wa > intersect_annotation_on_hor.txt
+bedtools intersect -a Homo_sapiens-GCA_009914755.4-2022_07-genes.gtf.gz -b ASat_SF.bed -wa > intersect_annotation_on_sf.txt
+bedtools intersect -a Homo_sapiens-GCA_009914755.4-2022_07-genes.gtf.gz -b Composite_track_CHM13v2.0.bed -wa > intersect_annotation_on_composite.txt
+
+bedtools sort -i annotation.bed -faidx chr_list.tsv > annotation_sorted.bed
+sort -k1,1V -k2,2n annotation.bed > annotation_sorted.bed
+
+cat <(grep '^#' Homo_sapiens-GCA_009914755.4-genes.bed) <(grep -v '^#' Homo_sapiens-GC
+A_009914755.4-genes.bed | sed 's/^/chr/g') > Homo_sapiens-GCA_009914755.4-genes-with-chr.bed
+
+cat <(grep '^#' Homo_sapiens-GCA_009914755.4-genes.gtf) <(grep -v '^#' Homo_sapiens-GCA_009914755.4-genes.gtf | sed 's/^/chr/g') > Homo_sapiens-GCA_009914755.4-genes-with-chr.gtf
+
+cat Homo_sapiens-GCA_009914755.4-genes-with-chr.bed chm13v2.0_censat_v2.0.bed > annotation.bed
+
+#This should print + or - instead of .
+awk -v OFS="\t" '{print $1,"censat","repeatArray", $2+1, $3, ".", $6, ".", sprintf("gene_id \"%s\"; transcript_id \"%s:%s-%s\"", $4, $1, $2, $3)}' chm13v2.0_censat_wo_header_v2.0.bed | head
+
+cat Homo_sapiens-GCA_009914755.4-genes-with-chr.gtf chm13v2.0_censat_v2.0.gtf > annotation.gtf
+
+sort -k1,1V -k4,4n annotation.gtf > annotation_sorted.gtf
+
+#!genome-build T2T-CHM13v2.0
+#!genome-version T2T-CHM13v2.0
+#!genome-date 2022-01
+#!genome-build-accession GCA_009914755.4
+#!genebuild-last-updated 2022-07
+#this is a custom annotation merged with chm13v2.0_censat_v2.0
+
+echo "#!genome-build T2T-CHM13v2.0" >> header.tmp
+echo "#!genome-version T2T-CHM13v2.0" >> header.tmp
+echo "#!genome-date 2022-01" >> header.tmp
+echo "#!genome-build-accession GCA_009914755.4" >> header.tmp
+echo "#!genebuild-last-updated 2022-07" >> header.tmp
+echo "#this is a custom annotation merged with chm13v2.0_censat_v2.0" >> header.tmp
+
+cat header.tmp annotation_sorted.gtf > annotation_sorted_with_header.gtf
+
+grep 'hor' chm13v2.0_censat_v2.0.bed | grep -v 'dhor' > censat_hor_no_strand.bed
+
+bedtools intersect -a censat_hor_no_strand.bed -b ASat_strand.bed -wb | awk -v OFS='\t' '{print $4, $15}' | uniq > hor_strandedness.tsv
+
+Created censat_hor_with_strand.bed in R
+
+awk -v OFS="\t" '{print $1,"censat","hor", $2+1, $3, ".", $6, ".", sprintf("gene_id \"%s\"; transcript_id \"%s:%s-%s\"", $4, $1, $2, $3)}' censat_hor_with_strand_sorted.bed > censat_hor_with_strand_sorted.bed
+
+Problem: I've got 124 elementqs in censat_hor_with_strand_sorted.bed, while I should have 139 from bedtools intersect -a censat_hor_no_strand.bed -b ASat_strand.bed -wb | awk -v OFS='\t' '{print $4, $15}' | uniq
+
+awk -v OFS="\t" '{print $1,"censat","hor", $2+1, $3, ".", $6, ".", sprintf("gene_id \"%s\"; transcript_id \"%s:%s-%s\"", $4, $1, $2, $3)}' censat_hor_with_strand_R.bed > hor_censat.gtf
+
+bedtools intersect -a censat_hor_no_strand.bed -b ASat_strand.bed -wa -wb > hor_strandedness_wa_wb.tsv
+
+sed 's/chr//' hs1.wo.chr.fa | sed 's/>M/>MT/' > hs1.without.chr.fa
+
+#Filter CAGE reads
+#by quality
+samtools view -@ 10 -b -q 20 .bam > .bam
+#by flags and quality
+samtools view -@ 10 -b -q 20 -f 99,147,83,163 .bam > .bam
+#by flags
+samtools view -b -f 99,147,83,163 .bam > .bam
+
+cage_airway_epithelium_sorted.bam cage_skeletal_muscle_sorted.bam cage_aortic_endothelium_sorted.bam cage_mammary_epithelium_sorted.bam cage_placental_epithelium_sorted.bam cage_preadipocyte_sorted.bam
+
+/home/nikitinp/gpfs/cage/cage_outdir_hisat2_trimming/samtools_sort/
+
+/home/nikitinp/gpfs/cage/filtered_cage/
+
+samtools view -@ 2 -b -q 20 -f 99,147,83,163 /home/nikitinp/gpfs/cage/cage_outdir_hisat2_trimming/samtools_sort/cage_airway_epithelium_sorted.bam > /home/nikitinp/gpfs/cage/filtered_cage/cage_airway_epithelium_sorted_flags_mapq.bam
+
+#!/usr/bin/env bash
+PATHTOFOLDER="/home/nikitinp/gpfs/cage/cage_outdir_hisat2_trimming_k10/samtools_sort/"
+OUTPATH="/home/nikitinp/gpfs/cage/filtered_cage_k10/"
+for var in cage_airway_epithelium_sorted cage_skeletal_muscle_sorted cage_aortic_endothelium_sorted cage_mammary_epithelium_sorted cage_placental_epithelium_sorted cage_preadipocyte_sorted
+do
+echo 'filter started' $var
+samtools view -@ 2 -b -f 83 $(echo $PATHTOFOLDER$var.bam) > $(echo $OUTPATH$var.flags83.bam)
+samtools view -@ 2 -b -f 99 $(echo $PATHTOFOLDER$var.bam) > $(echo $OUTPATH$var.flags99.bam)
+samtools view -@ 2 -b -f 147 $(echo $PATHTOFOLDER$var.bam) > $(echo $OUTPATH$var.flags147.bam)
+samtools view -@ 2 -b -f 163 $(echo $PATHTOFOLDER$var.bam) > $(echo $OUTPATH$var.flags163.bam)
+samtools merge -o $(echo $OUTPATH$var.flags.bam) $(echo $OUTPATH$var.flags83.bam) $(echo $OUTPATH$var.flags99.bam) $(echo $OUTPATH$var.flags147.bam) $(echo $OUTPATH$var.flags163.bam)
+samtools sort -@ 4 -o $(echo $OUTPATH$var.flags.sorted.bam) $(echo $OUTPATH$var.flags.bam)
+samtools index $(echo $OUTPATH$var.flags.sorted.bam)
+echo 'filtered' $var
+done
+
+srun --pty -p all  -t 120 -c 2 --mem 3G /bin/bash
+
+bedtools bamtobed -i cage_placental_epithelium_sorted.flags.sorted.bam > cage_placental_epithelium_sorted.flags.sorted.bed
+
+sort -k1,1 -k2,2n cage_placental_epithelium_sorted.flags.sorted.bed > cage_placental_epithelium_sorted.flags.sorted.sorted.bed
+
+cage_mammary_epithelium_sorted.flags.sorted.bed
+cage_placental_epithelium_sorted.flags.sorted.bed
+cage_skeletal_muscle_sorted.flags.sorted.bed
+
+bedtools intersect -sorted -c -wa -a censat_hor_with_strand_R.bed -b cage_placental_epithelium_sorted.flags.sorted.sorted.bed > cage_placental_epithelium_intersected.bed
+
+bedtools intersect -sorted -c -wa -a censat_hor_with_strand_R.bed -b cage_airway_epithelium_sorted.flags.sorted.bam > cage_airway_epithelium_intersected.bed
+bedtools intersect -sorted -c -wa -a censat_hor_with_strand_R.bed -b cage_aortic_endothelium_sorted.flags.sorted.sorted.bam > cage_aortic_endothelium_intersected.bed
+bedtools intersect -sorted -c -wa -a censat_hor_with_strand_R.bed -b cage_mammary_epithelium_sorted.flags.sorted.bam > cage_mammary_epithelium_intersected.bed
+bedtools intersect -sorted -c -wa -a censat_hor_with_strand_R.bed -b cage_placental_epithelium_sorted.flags.sorted.bam > cage_placental_epithelium_intersected.bed
+bedtools intersect -sorted -c -wa -a censat_hor_with_strand_R.bed -b cage_preadipocyte_sorted.flags.sorted.bam > cage_preadipocyte_intersected.bed
+bedtools intersect -sorted -c -wa -a censat_hor_with_strand_R.bed -b cage_skeletal_muscle_sorted.flags.sorted.bam > cage_skeletal_muscle_intersected.bed
+
+
+#!/usr/bin/env bash
+PATHTOFOLDER="/home/nikitinp/gpfs/cage/filtered_cage_k10/"
+OUTPATH="/home/nikitinp/gpfs/cage/filtered_cage_k10/"
+for var in cage_airway_epithelium_sorted cage_skeletal_muscle_sorted cage_aortic_endothelium_sorted cage_mammary_epithelium_sorted cage_placental_epithelium_sorted cage_preadipocyte_sorted
+do
+echo 'bedgraph started for' $var
+samtools view -b -f 128 -F 16 $(echo $PATHTOFOLDER$var.flags.sorted.bam) > $(echo $PATHTOFOLDER$var.flags.sorted.fwd1.bam)
+samtools view -b -f 80 $(echo $PATHTOFOLDER$var.flags.sorted.bam) > $(echo $PATHTOFOLDER$var.flags.sorted.fwd2.bam)
+samtools merge -f $(echo $PATHTOFOLDER$var.flags.sorted.fwd.bam) $(echo $PATHTOFOLDER$var.flags.sorted.fwd1.bam) $(echo $PATHTOFOLDER$var.flags.sorted.fwd2.bam)
+samtools index $(echo $PATHTOFOLDER$var.flags.sorted.fwd.bam)
+bamCoverage -b $(echo $PATHTOFOLDER$var.flags.sorted.fwd.bam) -o $(echo $PATHTOFOLDER$var.flags.sorted.fwd.bigWig)
+rm $(echo $PATHTOFOLDER$var.flags.sorted.fwd*.bam)
+echo "fwd done, start rev"
+samtools view -b -f 144 $(echo $PATHTOFOLDER$var.flags.sorted.bam) > $(echo $PATHTOFOLDER$var.flags.sorted.rev1.bam)
+samtools view -b -f 64 -F 16 $(echo $PATHTOFOLDER$var.flags.sorted.bam) > $(echo $PATHTOFOLDER$var.flags.sorted.rev2.bam)
+samtools merge -f $(echo $PATHTOFOLDER$var.flags.sorted.rev.bam) $(echo $PATHTOFOLDER$var.flags.sorted.rev1.bam) $(echo $PATHTOFOLDER$var.flags.sorted.rev2.bam)
+samtools index $(echo $PATHTOFOLDER$var.flags.sorted.rev.bam)
+bamCoverage -b $(echo $PATHTOFOLDER$var.flags.sorted.rev.bam) -o $(echo $PATHTOFOLDER$var.flags.sorted.rev.bigWig)
+rm $(echo $PATHTOFOLDER$var.flags.sorted.rev*.bam)
+echo 'bedgraph finished for' $var
+done
