@@ -1,0 +1,11 @@
+srun \
+    --partition ctrl \
+    --qos qos_ctrl \
+    --time 30-00:00:00 \
+    nextflow run nf-core/rnaseq \
+        -r 3.14.0 \
+        -params-file params_t2t_star_rsem_trs.yaml \
+        -w $TMPDIR/nxf_work_rnaseq_trs \
+        -profile jex \
+        -resume
+

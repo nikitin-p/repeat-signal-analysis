@@ -1,0 +1,6 @@
+nf-core/rnaseq 3.14.0
+samtools 1.19.2
+bedtools 2.31.0
+deeptools 3.5.3
+star 2.7.11a
+

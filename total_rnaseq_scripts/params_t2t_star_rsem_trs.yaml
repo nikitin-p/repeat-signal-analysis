@@ -1,0 +1,9 @@
+input: samplesheet.csv
+outdir: results_t2t_star_rsem
+fasta: /home/ss18818/projects/trs/chm13v2.0.fa.gz 
+gtf: /home/ss18818/projects/trs/Homo_sapiens-GCA_009914755.4-genes-with-chr.gtf
+aligner: star_rsem
+save_reference: true
+igenomes_ignore: true
+genome: null
+email: s.sidorov18@lms.mrc.ac.uk

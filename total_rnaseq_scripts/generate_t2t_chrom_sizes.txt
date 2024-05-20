@@ -1,0 +1,2 @@
+<t2tv2_ncbi.chrom.sizes.tsv awk -F"\t" '{print $(NF-1) "\t" $(NF-2)}' | tail -n +2 > t2tv2_ncbi.chrom.sizes
+

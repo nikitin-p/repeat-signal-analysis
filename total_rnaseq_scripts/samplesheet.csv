@@ -1,0 +1,13 @@
+sample,fastq_1,fastq_2,strandedness
+airway_epithelium_iso1,/home/ss18818/projects/trs/total_rnaseq/total-airway-epithelium-iso1_S1_L001_R1.fastq.gz,/home/ss18818/projects/trs/total_rnaseq/total-airway-epithelium-iso1_S1_L001_R2.fastq.gz,auto
+airway_epithelium_iso2,/home/ss18818/projects/trs/total_rnaseq/total-airway-epithelium-iso2_S2_L001_R1.fastq.gz,/home/ss18818/projects/trs/total_rnaseq/total-airway-epithelium-iso2_S2_L001_R2.fastq.gz,auto
+aortic_endothelium_aniso1,/home/ss18818/projects/trs/total_rnaseq/total-aortic-endothelium-aniso1_S1_L001_R1.fastq.gz,/home/ss18818/projects/trs/total_rnaseq/total-aortic-endothelium-aniso1_S1_L001_R2.fastq.gz,auto
+aortic_endothelium_aniso2,/home/ss18818/projects/trs/total_rnaseq/total-aortic-endothelium-aniso2_S2_L001_R1.fastq.gz,/home/ss18818/projects/trs/total_rnaseq/total-aortic-endothelium-aniso2_S2_L001_R2.fastq.gz,auto
+mammary_epithelium_iso1,/home/ss18818/projects/trs/total_rnaseq/total-mammary-epithelium-iso1_S1_L001_R1.fastq.gz,,auto
+mammary_epithelium_iso2,/home/ss18818/projects/trs/total_rnaseq/total-mammary-epithelium-iso2_S2_L001_R1.fastq.gz,,auto
+placental_epithelium_aniso1,/home/ss18818/projects/trs/total_rnaseq/total-placental-epithelium-aniso1_S1_L001_R1.fastq.gz,/home/ss18818/projects/trs/total_rnaseq/total-placental-epithelium-aniso1_S1_L001_R2.fastq.gz,auto
+placental_epithelium_aniso2,/home/ss18818/projects/trs/total_rnaseq/total-placental-epithelium-aniso2_S2_L001_R1.fastq.gz,/home/ss18818/projects/trs/total_rnaseq/total-placental-epithelium-aniso2_S2_L001_R2.fastq.gz,auto
+preadipocyte_aniso1,/home/ss18818/projects/trs/total_rnaseq/total-preadipocyte-aniso1_S1_L001_R1.fastq.gz,/home/ss18818/projects/trs/total_rnaseq/total-preadipocyte-aniso1_S1_L001_R2.fastq.gz,auto
+preadipocyte_aniso2,/home/ss18818/projects/trs/total_rnaseq/total-preadipocyte-aniso2_S2_L001_R1.fastq.gz,/home/ss18818/projects/trs/total_rnaseq/total-preadipocyte-aniso2_S2_L001_R2.fastq.gz,auto
+skeletal_muscle_aniso1,/home/ss18818/projects/trs/total_rnaseq/total-skeletal-muscle-aniso1_S1_L001_R1.fastq.gz,/home/ss18818/projects/trs/total_rnaseq/total-skeletal-muscle-aniso1_S1_L001_R2.fastq.gz,auto
+skeletal_muscle_aniso2,/home/ss18818/projects/trs/total_rnaseq/total-skeletal-muscle-aniso2_S2_L001_R1.fastq.gz,/home/ss18818/projects/trs/total_rnaseq/total-skeletal-muscle-aniso2_S2_L001_R2.fastq.gz,auto
